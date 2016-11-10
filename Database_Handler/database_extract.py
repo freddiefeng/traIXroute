@@ -19,10 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with traIXroute.  If not, see <http://www.gnu.org/licenses/>.
 
-from Database_Handler import handle_json,handle_pch,handle_pdb,handle_ripe,dict_merger,handle_complementary
+from Database_Handler import handle_json,handle_pch,handle_pdb,handle_ripe,dict_merger,handle_complementary,handle_as_info
 from Controller import traIXroute_output, traIXroute_parser
 from os import remove
-from os.path import exists
+from os.path import exists, join
 import SubnetTree,concurrent.futures,sys
 
 class database():
@@ -55,6 +55,8 @@ class database():
         self.subTree = None
         # self.cc_tree: A Subnet Tree with {Subnet}=[Contry, City].
         self.cc_tree = None
+        # self.as_info: A dictionary with {ASN}={AS information string}
+        self.as_info = None
         
         # self.merge_flag: Flag to export the merged IXP IPs and IXP subnets to files.
         self.merge_flag = traIXroute_parser.flags['merge']
@@ -77,14 +79,13 @@ class database():
         self.filename_peer_pfx = 'ixpfx.json'
         # self.filename_peer_ixlan: The ixlan.json file from peeringdb.
         self.filename_peer_ixlan = 'ixlan.json'
+        self.filename_as_info_list = 'as_info_list'
         # self.route_filename: The routeviews Subnet-to-ASN file.
         self.route_filename = 'routeviews'
         # self.usr_ixps: The additional_info.txt file.
         self.user_ixps = 'additional_info.txt'
         # self.reserved_names: The reservedIPs.txt file.
         self.reserved_names = 'reservedIPs.txt'
-        # self.usr_ixps: The additional info file.
-        self.usr_ixps = 'additional_info.txt'
         # self.config: Contains the config file dictionary.
         self.config = config
         # self.mypath: The directory path of the traIXroute folder.
@@ -121,8 +122,13 @@ class database():
 
         # Extracts the ASNs from routeviews file
         asn_hand = handle_complementary.asn_handle()
-        Sub_hand = handle_complementary.Subnet_handle() 
-        
+        Sub_hand = handle_complementary.Subnet_handle()
+
+        if not exists(join(self.mypath, self.filename_as_info_list + '.json')):
+            as_info_hand = handle_as_info.as_info_handle()
+            as_info_hand.convert_to_json(self.mypath, self.filename_as_info_list)
+        self.as_info = json_handle.import_IXP_dict(self.mypath + self.filename_as_info_list + '.json')[0]
+
         flag = False
         if (lst_modified and not chk_update and not self.merge_flag) or not self.outcome:
             print ("Loading from Database.")

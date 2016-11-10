@@ -99,6 +99,8 @@ class traIXroute_output():
         ixp_short_names = path_info_extract.ixp_short_names
         ixp_long_names = path_info_extract.ixp_long_names
         unsure = path_info_extract.unsure
+        as_info_list = path_info_extract.as_info_list
+        ip_info_list = path_info_extract.ip_info_list
         asn_print = traIXparser.flags['asn']
         dns_print = traIXparser.flags['dns']
         
@@ -162,6 +164,8 @@ class traIXroute_output():
                 temp_print=gra_path[i]+unsure[i]+base_ixp_print+'->'+gra_asn[i]+dns[i]+' '+'('+ip_path[i]+')'+' '+mytime[i]
 
             print_data+=temp_print+'\n'
+            print_data+='AS Info: {}'.format(as_info_list[i])+'\n'
+            print_data+='IP Info: {}'.format(ip_info_list[i])+'\n'
             
         print_data=print_data+'IXP Hops:\n'
         self.print_data += print_data

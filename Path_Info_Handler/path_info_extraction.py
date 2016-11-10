@@ -20,6 +20,9 @@
 # along with traIXroute.  If not, see <http://www.gnu.org/licenses/>.
 
 import SubnetTree, socket, os
+import requests, json
+import json
+from urllib.request import urlopen
 
 class path_info_extraction():
     '''
@@ -38,6 +41,9 @@ class path_info_extraction():
         # self.unsure: A list with flags to specify in which hop an IXP IP is considered as "dirty".
         self.unsure = []
 
+        self.as_info_list = []
+        self.ip_info_list = []
+
 
     def path_info_extraction(self,db_extract,ip_path):
         '''
@@ -50,15 +56,29 @@ class path_info_extraction():
         ip2asn      = db_extract.final_ixp2asn
         Subnet_tree = db_extract.subTree
         Route_tree  = db_extract.asn_routeviews
+        as_info = db_extract.as_info
 
         self.asn_list        = ['*' for x in range(0,len(ip_path))]
         self.ixp_long_names  = [['No Long Name'] for x in range(0,len(ip_path))]
         self.ixp_short_names = [['No Short Name'] for x in range(0,len(ip_path))]
         self.type_vector     = ['Unresolved' for x in range(0,len(ip_path))]
         self.unsure          = ['' for x in range(0,len(ip_path))]
+        self.as_info_list    = ['N/A' for x in range(0,len(ip_path))]
+        self.ip_info_list    = ['N/A' for x in range(0,len(ip_path))]
 
         for i in range(0,len(ip_path)):
             path_cur=ip_path[i]
+
+            try:
+                url = 'http://ip-api.com/json/{}'.format(path_cur)
+                response = urlopen(url).read().decode('utf-8')
+                data = json.loads(str(response))
+
+                ip_info_keys = ["country", "region", "city", "isp", "org"]
+                ip_info = {k: v for k, v in data.items() if k in ip_info_keys}
+                if len(ip_info) > 0:                    self.ip_info_list[i] = ip_info
+            except:
+                print("Unable to retrieve ip info for {}".format(path_cur))
 
             # If there is an IXP hit.
             if path_cur in ip2asn and  path_cur in Subnet_tree:
@@ -89,5 +109,8 @@ class path_info_extraction():
             # Else for the normal IPs, it finds the ASN using the routeviews dataset.
             elif path_cur in Route_tree:
                 self.asn_list[i]=Route_tree[path_cur]
+                as_key = 'AS{}'.format(Route_tree[path_cur])
+                if as_key in as_info:
+                    self.as_info_list[i] = as_info[as_key]
                 self.type_vector[i]='Normal IP'
-                
+

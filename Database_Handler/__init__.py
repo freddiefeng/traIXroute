@@ -1,1 +1,1 @@
-__all__ = ['database_extract','dict_merger','handle_complementary','handle_json','handle_pch','handle_pdb']
+__all__ = ['database_extract','dict_merger','handle_complementary','handle_json','handle_pch','handle_pdb','handle_as_info']
