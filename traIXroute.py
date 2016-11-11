@@ -97,6 +97,7 @@ class traIXroute():
 
             mydownload = download_files.download_files(config)
             outcome = mydownload.download_files(mypath)
+            outcome &= mydownload.copy_static_files(mypath,['as_info_list'])
             if outcome:
                 print ('Database has been updated successfully.')
             elif merge_flag:

@@ -45,6 +45,19 @@ class download_files():
         self.ixp_subnet     = config["pch"]["ixp_subnet"]
         self.caida_log      = config["caida_log"]
 
+    def copy_static_files(self, mypath, cached_file_names):
+        default_db_path = mypath + '/Database/Default'
+        user_db_path = mypath + '/Database/User'
+
+        for file_name in cached_file_names:
+            if not os.path.exists(os.path.join(default_db_path, file_name)):
+                return False
+            shutil.copyfile(
+                os.path.join(default_db_path, file_name),
+                os.path.join(user_db_path, file_name)
+            )
+        print("Copied static files to user database")
+        return True
 
     def download_files(self,mypath):
         '''
