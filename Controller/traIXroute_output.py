@@ -164,8 +164,8 @@ class traIXroute_output():
                 temp_print=gra_path[i]+unsure[i]+base_ixp_print+'->'+gra_asn[i]+dns[i]+' '+'('+ip_path[i]+')'+' '+mytime[i]
 
             print_data+=temp_print+'\n'
-            print_data+='AS Info: {}'.format(as_info_list[i])+'\n'
-            print_data+='IP Info: {}'.format(ip_info_list[i])+'\n'
+            print_data+='\tAS Info: {}'.format(as_info_list[i])+'\n'
+            print_data+='\tIP Info: {}'.format(ip_info_list[i])+'\n'
             
         print_data=print_data+'IXP Hops:\n'
         self.print_data += print_data
