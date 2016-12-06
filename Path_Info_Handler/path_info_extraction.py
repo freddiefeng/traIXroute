@@ -71,12 +71,13 @@ class path_info_extraction():
 
             try:
                 url = 'http://ip-api.com/json/{}'.format(path_cur)
-                response = urlopen(url).read().decode('utf-8')
+                response = urlopen(url, timeout=1).read().decode('utf-8')
                 data = json.loads(str(response))
 
                 ip_info_keys = ["country", "region", "city", "isp", "org"]
                 ip_info = {k: v for k, v in data.items() if k in ip_info_keys}
-                if len(ip_info) > 0:                    self.ip_info_list[i] = ip_info
+                if len(ip_info) > 0:
+                    self.ip_info_list[i] = ip_info
             except:
                 print("Unable to retrieve ip info for {}".format(path_cur))
 

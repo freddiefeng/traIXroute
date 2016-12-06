@@ -31,6 +31,8 @@ class traIXroute_output():
         # self.print_data: The data to print.
         self.print_data = ''
 
+    def clear(self):
+        self.print_data = ''
 
     def flush(self,fp):
         '''

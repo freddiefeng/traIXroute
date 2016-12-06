@@ -60,6 +60,7 @@ class traIXroute_parser():
         parser_probe  = subparsers.add_parser('probe',help='probe --help')
         parser_ripe   = subparsers.add_parser('ripe',help='ripe --help')
         parser_import = subparsers.add_parser('import',help='import --help')
+        parser_ark = subparsers.add_parser('ark',help='ark --help')
 
         parser.add_argument('-dns','--enable-dns-print', action='store_true',help='Enables printing the domain name of each IP hop in the traceroute path.')
         parser.add_argument('-asn','--enable-asn-print', action='store_true',help='Enables printing the ASN of each IP hop in the traceroute path.')
@@ -67,8 +68,8 @@ class traIXroute_parser():
         parser.add_argument('-rule','--enable-rule-print', action='store_true',help='Enables printing the hit IXP detection rule(s) in the traceroute path.')
         parser.add_argument('-u','--update', action='store_true',help='Updates the database with up-to-date datasets.')
         parser.add_argument('-m','--merge', action='store_true',help='Exports the database to distinct files, the ixp_prefixes.txt and ixp_membership.txt.')
-        parser.add_argument('-o','--output', action='store',nargs=1,type=str,help='Specifies the output file name to redirect the traIXroute results.')  
-        
+        parser.add_argument('-o','--output', action='store',nargs=1,type=str,help='Specifies the output file name to redirect the traIXroute results.')
+
         group_0 = parser_probe.add_mutually_exclusive_group(required=True)
         group_0.add_argument('-dest','--destination', nargs='+', action='store', type=str,help='The IP/FQDN destination to send the probe.')
         group_0.add_argument('-doc','--input-file', nargs=1, action='store', type=str,help='The input file with the list of the destination IP addresses or FQDNs to send the probes.')
@@ -83,8 +84,11 @@ class traIXroute_parser():
            
         group_3 = parser_import.add_mutually_exclusive_group(required=True)
         group_3.add_argument('-json','--parse-json', nargs=1, action='store', type=str,help='Imports a list of traceroute paths from a traIXroute format (json based) file to detect IXP crossing links. For example see Examples/test.json.')      
-        group_3.add_argument('-ripejson','--parse-ripe-json', nargs=1, action='store', type=str,help='Imports a list of traceroute paths from a ripe json format file to detect IXP crossing links.')      
-        
+        group_3.add_argument('-ripejson','--parse-ripe-json', nargs=1, action='store', type=str,help='Imports a list of traceroute paths from a ripe json format file to detect IXP crossing links.')
+
+        parser_ark.add_argument("-warts", "--warts-file", nargs=1, action='store', type=str, help='The input file in warts format for offline processing.')
+        parser_ark.add_argument("-lines", "--warts-trace-count", nargs=1, action='store', type=int, help='The number of lines to be processed in the warts file.')
+
         options=parser.parse_args()
 
         # Parameterize arguments from subparser probe
@@ -106,7 +110,25 @@ class traIXroute_parser():
                 self.flags['tracetool']=1
                 if len(options.scamper)>0:
                     self.arguments=options.scamper[0]
-        
+
+        if (options.subparser_name=='ark'):
+            self.flags['ark'] = True
+            self.flags['useTraiXroute']=True
+            self.flags['tracetool'] = 0
+            self.arguments = []
+
+            if options.warts_file is not None:
+                self.arguments.append(options.warts_file[0])
+            else:
+                print('Please specify the warts file')
+                sys.exit(-1)
+
+            if options.warts_trace_count is not None:
+                self.arguments.append(options.warts_trace_count[0])
+            else:
+                print('Please specify the number of traces to process in ark')
+                sys.exit(-1)
+
         # Parameterize arguments from subparser ripe
         elif (options.subparser_name=='ripe'):
             if (options.request is not None):

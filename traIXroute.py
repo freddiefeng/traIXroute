@@ -28,6 +28,8 @@ from Controller import *
 from multiprocessing import cpu_count
 import concurrent.futures, sys, getopt, os, datetime, socket, SubnetTree, ujson, subprocess,signal, time
 
+from Ark_Data_Analysis import *
+
 class traIXroute():
     '''
     This is the core module of the tool. It orchestrates all the modules to detect and identify if and between which hops in a traceroute path an IXP crossing occurs.
@@ -67,6 +69,7 @@ class traIXroute():
         ripe            = traIXparser.flags['ripe']
         selected_tool   = traIXparser.flags['tracetool']
         import_flag     = traIXparser.flags['import']
+        ark_flag        = traIXparser.flags['ark']
         
         json_handle = handle_json.handle_json()
         [config,config_flag]=json_handle.import_IXP_dict(mypath+'/config')
@@ -135,7 +138,8 @@ class traIXroute():
                 input_list = inputIP.split(',')
             input_list=list(filter(('').__ne__, input_list))
             temp_point=0
-            if not ripe and not import_flag:
+            # if not ripe and not import_flag:
+            if not ripe and not import_flag and not ark_flag:
                 inputIP=input_list[temp_point].replace(' ','')        
             # Instead of an IP address, a domain name has been given as destination to send the probe, the domain name is reversed.
             string_handle=string_handler.string_handler()
@@ -205,13 +209,53 @@ class traIXroute():
                 return rule_hits
                 
             with concurrent.futures.ThreadPoolExecutor(max_workers=config["num_of_cores"]) as executor:
-                for rule_hits in executor.map(analyze_measurement,input_list):
-                    final_rules_hit=[x + y for x, y in zip(final_rules_hit, rule_hits)]
-                    num_ips+=1
+                if ark_flag:
+                    print(arguments)
+                    warts_file = str(arguments[0])
+                    num_traces_processed = int(arguments[1])
+                    future = executor.submit(
+                        traIXroute.analyze_ark, traIXparser, detection_rules_node, db_extract, mypath, warts_file, num_traces_processed
+                    )
+                    print(future.result())
+                else:
+                    for rule_hits in executor.map(analyze_measurement,input_list):
+                        final_rules_hit=[x + y for x, y in zip(final_rules_hit, rule_hits)]
+                        num_ips+=1
                     
             # Extracting statistics.
-            self.stats_extract(mypath,'stats_'+exact_time+'.txt',num_ips,detection_rules_node.rules,final_rules_hit,exact_time)            
+            self.stats_extract(mypath,'stats_'+exact_time+'.txt',num_ips,detection_rules_node.rules,final_rules_hit,exact_time)
 
+    @staticmethod
+    def analyze_ark(traIXparser, detection_rules_node, db_extract, mypath, warts_file, num_traces_processed):
+        output = traIXroute_output.traIXroute_output()
+        ret = ark_parser.read_from_warts(warts_file, num_traces_processed)
+
+        try:
+            ixp_fp = open(mypath + '/' + "daily.l7.t1.c002921.20140102.nrt-jp.ixp", 'w')
+        except:
+            print('Could not open ixp output file {}. Exiting.'.format(mypath + '/' + "daily.l7.t1.c002921.20140102.nrt-jp.ixp"))
+            sys.exit(0)
+
+        count = 0
+        for pair in ret:
+            count += 1
+            print("processing route: {}".format(count))
+            src = pair[0]
+            dst = pair[1]
+            IP_route = pair[2]
+            path_delay = pair[3]
+            if len(IP_route):
+                # IP path info extraction and print.
+                path_info_extract = path_info_extraction.path_info_extraction()
+                path_info_extract.path_info_extraction(db_extract, IP_route)
+                output.print_path_info(IP_route, path_delay, mypath, path_info_extract, traIXparser)
+                detection_rules_node.resolve_path(IP_route, mypath, output, path_info_extract, db_extract,
+                                                  traIXparser)
+                rule_hits = detection_rules_node.rule_hits
+                if len(list(filter(lambda x: x > 0, rule_hits))) > 0:
+                    output.flush(ixp_fp)
+                else:
+                    output.clear()
 
     def stats_extract(self,mypath,filename,num_ips,rules,final_rules_hit,time):
         '''
